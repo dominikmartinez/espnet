@@ -268,22 +268,22 @@ else
 fi
 
 # Extra files for translation process
-utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
+utt_extra_files="text.${src_lang}_${tgt_lang}.${src_case}.${src_lang} text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}"
 # Use the same text as MT for bpe training if not specified.
-[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-[ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
+[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang}"
+[ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}"
 # Use the same text as MT for lm training if not specified.
-[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
+[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}"
 # Use the same text as MT for lm training if not specified.
-[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text.${tgt_case}.${tgt_lang}"
+[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}"
 # Use the text of the 1st evaldir if lm_test is not specified
-[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text.${tgt_case}.${tgt_lang}"
+[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}"
 
 # Check tokenization type
 if [ "${lang}" != noinfo ]; then
     token_listdir=data/${lang}_token_list
 else
-    token_listdir=data/token_list
+    token_listdir=data/token_list_src.${src_case}.${src_lang}_tgt.${tgt_case}.${tgt_lang}
 fi
 # The tgt bpedir is set for all cases when using bpe
 tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
@@ -362,7 +362,7 @@ if [ -z "${mt_tag}" ]; then
     if [ "${lang}" != noinfo ]; then
         mt_tag+="_${lang}_${tgt_token_type}_${tgt_case}"
     else
-        mt_tag+="_${tgt_token_type}_${tgt_case}"
+        mt_tag+="_src.${src_case}.${src_lang}_tgt.${tgt_case}.${tgt_lang}_${tgt_token_type}_${tgt_case}"
     fi
     if [ "${tgt_token_type}" = bpe ]; then
         mt_tag+="${tgt_nbpe}"
@@ -381,7 +381,7 @@ if [ -z "${lm_tag}" ]; then
     if [ "${lang}" != noinfo ]; then
         lm_tag+="_${lang}_${lm_token_type}"
     else
-        lm_tag+="_${lm_token_type}"
+        lm_tag+="_tgt.${tgt_case}.${tgt_lang}_${tgt_token_type}_${tgt_case}_${lm_token_type}"
     fi
     if [ "${lm_token_type}" = bpe ]; then
         lm_tag+="${tgt_nbpe}"
@@ -400,7 +400,7 @@ if [ -z "${mt_stats_dir}" ]; then
         mt_stats_dir="${expdir}/mt_stats_${feats_type}_${tgt_token_type}"
     fi
     if [ "${tgt_token_type}" = bpe ]; then
-        mt_stats_dir+="${tgt_nbpe}"
+        mt_stats_dir+="${tgt_nbpe}_src.${src_case}.${src_lang}_tgt.${tgt_case}.${tgt_lang}"
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
@@ -868,7 +868,7 @@ if ! "${skip_train}"; then
         _logdir="${mt_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
-        _scp=text.${src_case}.${src_lang}
+        _scp=text.${src_lang}_${tgt_lang}.${src_case}.${src_lang}
 
         # Get the minimum number among ${nj} and the number lines of input files
         _nj=$(min "${nj}" "$(<${_mt_train_dir}/${_scp} wc -l)" "$(<${_mt_valid_dir}/${_scp} wc -l)")
@@ -914,10 +914,10 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --train_data_path_and_name_and_type "${_mt_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --train_data_path_and_name_and_type "${_mt_train_dir}/text.${src_case}.${src_lang},src_text,text" \
-                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                --train_data_path_and_name_and_type "${_mt_train_dir}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang},text,text" \
+                --train_data_path_and_name_and_type "${_mt_train_dir}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang},src_text,text" \
+                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang},text,text" \
+                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang},src_text,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -973,8 +973,8 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.split_scps \
                   --scps \
                       "${_mt_train_dir}/${_scp}" \
-                      "${_mt_train_dir}/text.${tgt_case}.${tgt_lang}" \
-                      "${_mt_train_dir}/text.${src_case}.${src_lang}" \
+                      "${_mt_train_dir}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" \
+                      "${_mt_train_dir}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang}" \
                       "${mt_stats_dir}/train/text_shape.${tgt_token_type}" \
                       "${mt_stats_dir}/train/src_text_shape.${src_token_type}" \
                   --num_splits "${num_splits_mt}" \
@@ -984,14 +984,14 @@ if ! "${skip_train}"; then
                 log "${_split_dir}/.done exists. Spliting is skipped"
             fi
 
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang},text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
             _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
             _opts+="--multiple_iterator true "
         else
-            _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
-            _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang},text,text "
+            _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${mt_stats_dir}/train/text_shape.${tgt_token_type} "
             _opts+="--train_shape_file ${mt_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
@@ -1028,8 +1028,8 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang},text,text" \
+                --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang},src_text,text" \
                 --valid_shape_file "${mt_stats_dir}/valid/text_shape.${tgt_token_type}" \
                 --valid_shape_file "${mt_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
@@ -1116,7 +1116,7 @@ if ! "${skip_eval}"; then
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
-            _scp=text.${src_case}.${src_lang}
+            _scp=text.${src_lang}_${tgt_lang}.${src_case}.${src_lang}
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
@@ -1165,7 +1165,7 @@ if ! "${skip_eval}"; then
             _scoredir="${_dir}/score_bleu"
             mkdir -p "${_scoredir}"
 
-            <"${_data}/text.${tgt_case}.${tgt_lang}" \
+            <"${_data}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" \
                 ${python} -m espnet2.bin.tokenize_text  \
                     -f 2- --input - --output - \
                     --token_type word \
@@ -1235,7 +1235,7 @@ if ! "${skip_eval}"; then
             log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
 
             # process multi-references cases
-            multi_references=$(ls "${_data}/text.${tgt_case}.${tgt_lang}".* || echo "")
+            multi_references=$(ls "${_data}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}".* || echo "")
             if [ "${multi_references}" != "" ]; then
                 case_sensitive_refs=""
                 case_insensitive_refs=""
@@ -1250,7 +1250,7 @@ if ! "${skip_eval}"; then
                                 --remove_non_linguistic_symbols true \
                                 --cleaner "${cleaner}" \
                                 ) \
-                        <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
+                        <(<"${_data}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn.org.${ref_idx}"
                     
                     # 

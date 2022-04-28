@@ -17,8 +17,7 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-URL="http://dl.fbaipublicfiles.com/fairseq/data/iwslt14/de-en.tgz"
-GZ=de-en.tgz
+src=es
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -27,6 +26,14 @@ if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
+
+echo "data.sh $src"
+
+tgt=en
+lang=${src}-${tgt}
+GZ=${src}-${tgt}.tgz
+prep=iwslt14.tokenized.${lang}
+tmp=data/$prep/tmp
 
 if [ -z "${IWSLT14}" ]; then
     log "Fill the value of 'IWSLT14' of db.sh"
@@ -37,6 +44,11 @@ fi
 if [ -f "${IWSLT14}/${GZ}" ]; then
     log "Data already downloaded"
 else
+    if [ $src == "es" ]; then
+        URL="https://www.dropbox.com/s/azc2ieix33dmyj4/es-en.tgz"
+    elif [ $src == "de"]; then
+        URL="http://dl.fbaipublicfiles.com/fairseq/data/iwslt14/de-en.tgz"
+    fi
     (
         cd ${IWSLT14}
         wget "$URL"
@@ -45,11 +57,6 @@ else
     log "Data downloaded and extracted"
 fi
 
-src=de
-tgt=en
-lang=de-en
-prep=iwslt14.tokenized.de-en
-tmp=data/$prep/tmp
 
 if [ ! -d "${IWSLT14}/${lang}" ]; then
     (
@@ -140,47 +147,50 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         awk '{if (NR%23 == 0)  print $0; }' $tmp/train.tags.$lang.tok.clean.rm.$l > $tmp/valid.tok.clean.rm.$l
 
         cat $tmp/IWSLT14.TED.dev2010.$lang.$l.tok \
-            $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok \
             $tmp/IWSLT14.TED.tst2010.$lang.$l.tok \
             $tmp/IWSLT14.TED.tst2011.$lang.$l.tok \
             $tmp/IWSLT14.TED.tst2012.$lang.$l.tok \
             > $tmp/test.tok.$l
 
         cat $tmp/IWSLT14.TED.dev2010.$lang.$l.tok.lc \
-            $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok.lc \
             $tmp/IWSLT14.TED.tst2010.$lang.$l.tok.lc \
             $tmp/IWSLT14.TED.tst2011.$lang.$l.tok.lc \
             $tmp/IWSLT14.TED.tst2012.$lang.$l.tok.lc \
             > $tmp/test.tok.lc.$l
 
         cat $tmp/IWSLT14.TED.dev2010.$lang.$l.tok.lc.rm \
-            $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok.lc.rm \
             $tmp/IWSLT14.TED.tst2010.$lang.$l.tok.lc.rm \
             $tmp/IWSLT14.TED.tst2011.$lang.$l.tok.lc.rm \
             $tmp/IWSLT14.TED.tst2012.$lang.$l.tok.lc.rm \
             > $tmp/test.tok.lc.rm.$l
 
         cat $tmp/IWSLT14.TED.dev2010.$lang.$l.tok.rm \
-            $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok.rm \
             $tmp/IWSLT14.TED.tst2010.$lang.$l.tok.rm \
             $tmp/IWSLT14.TED.tst2011.$lang.$l.tok.rm \
             $tmp/IWSLT14.TED.tst2012.$lang.$l.tok.rm \
             > $tmp/test.tok.rm.$l
 
-        nl -s ' ' -n rz $tmp/train.tok.clean.$l | awk '{print "utt" $0}' > data/train/text.tc.$l
-        nl -s ' ' -n rz $tmp/train.tok.clean.rm.$l | awk '{print "utt" $0}' > data/train/text.tc.rm.$l
-        nl -s ' ' -n rz $tmp/train.tok.clean.lc.$l | awk '{print "utt" $0}' > data/train/text.lc.$l
-        nl -s ' ' -n rz $tmp/train.tok.clean.lc.rm.$l | awk '{print "utt" $0}' > data/train/text.lc.rm.$l
+        if [ $src == "de" ]; then
+            cat $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok >> $tmp/test.tok.$l
+            cat $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok.lc >> $tmp/test.tok.lc.$l
+            cat $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok.lc.rm >> $tmp/test.tok.lc.rm.$l
+            cat $tmp/IWSLT14.TEDX.dev2012.$lang.$l.tok.rm >> $tmp/test.tok.rm.$l
+        fi
 
-        nl -s ' ' -n rz $tmp/valid.tok.clean.$l | awk '{print "utt" $0}' > data/valid/text.tc.$l
-        nl -s ' ' -n rz $tmp/valid.tok.clean.rm.$l | awk '{print "utt" $0}' > data/valid/text.tc.rm.$l
-        nl -s ' ' -n rz $tmp/valid.tok.clean.lc.$l | awk '{print "utt" $0}' > data/valid/text.lc.$l
-        nl -s ' ' -n rz $tmp/valid.tok.clean.lc.rm.$l | awk '{print "utt" $0}' > data/valid/text.lc.rm.$l
+        nl -s ' ' -n rz $tmp/train.tok.clean.$l | awk '{print "utt" $0}' > data/train/text.${src}_${tgt}.tc.$l
+        nl -s ' ' -n rz $tmp/train.tok.clean.rm.$l | awk '{print "utt" $0}' > data/train/text.${src}_${tgt}.tc.rm.$l
+        nl -s ' ' -n rz $tmp/train.tok.clean.lc.$l | awk '{print "utt" $0}' > data/train/text.${src}_${tgt}.lc.$l
+        nl -s ' ' -n rz $tmp/train.tok.clean.lc.rm.$l | awk '{print "utt" $0}' > data/train/text.${src}_${tgt}.lc.rm.$l
 
-        nl -s ' ' -n rz $tmp/test.tok.$l | awk '{print "utt" $0}' > data/test/text.tc.$l
-        nl -s ' ' -n rz $tmp/test.tok.rm.$l | awk '{print "utt" $0}' > data/test/text.tc.rm.$l
-        nl -s ' ' -n rz $tmp/test.tok.lc.$l | awk '{print "utt" $0}' > data/test/text.lc.$l
-        nl -s ' ' -n rz $tmp/test.tok.lc.rm.$l | awk '{print "utt" $0}' > data/test/text.lc.rm.$l
+        nl -s ' ' -n rz $tmp/valid.tok.clean.$l | awk '{print "utt" $0}' > data/valid/text.${src}_${tgt}.tc.$l
+        nl -s ' ' -n rz $tmp/valid.tok.clean.rm.$l | awk '{print "utt" $0}' > data/valid/text.${src}_${tgt}.tc.rm.$l
+        nl -s ' ' -n rz $tmp/valid.tok.clean.lc.$l | awk '{print "utt" $0}' > data/valid/text.${src}_${tgt}.lc.$l
+        nl -s ' ' -n rz $tmp/valid.tok.clean.lc.rm.$l | awk '{print "utt" $0}' > data/valid/text.${src}_${tgt}.lc.rm.$l
+
+        nl -s ' ' -n rz $tmp/test.tok.$l | awk '{print "utt" $0}' > data/test/text.${src}_${tgt}.tc.$l
+        nl -s ' ' -n rz $tmp/test.tok.rm.$l | awk '{print "utt" $0}' > data/test/text.${src}_${tgt}.tc.rm.$l
+        nl -s ' ' -n rz $tmp/test.tok.lc.$l | awk '{print "utt" $0}' > data/test/text.${src}_${tgt}.lc.$l
+        nl -s ' ' -n rz $tmp/test.tok.lc.rm.$l | awk '{print "utt" $0}' > data/test/text.${src}_${tgt}.lc.rm.$l
 
     done
 fi
