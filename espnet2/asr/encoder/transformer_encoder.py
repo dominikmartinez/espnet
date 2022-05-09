@@ -148,7 +148,10 @@ class TransformerEncoder(AbsEncoder):
                 concat_after,
             ),
         )
+
+        self.final_layernorm = False
         if self.normalize_before and final_layernorm:
+            self.final_layernorm = True
             self.after_norm = LayerNorm(output_size)
 
         self.interctc_layer_idx = interctc_layer_idx
@@ -218,7 +221,7 @@ class TransformerEncoder(AbsEncoder):
                         ctc_out = ctc.softmax(encoder_out)
                         xs_pad = xs_pad + self.conditioning_layer(ctc_out)
 
-        if self.normalize_before:
+        if self.normalize_before and self.final_layernorm:
             xs_pad = self.after_norm(xs_pad)
 
         olens = masks.squeeze(1).sum(1)

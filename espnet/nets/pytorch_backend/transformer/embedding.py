@@ -41,8 +41,8 @@ class LearnedPositionalEncoding(torch.nn.Embedding):
         class RelPositionalEncoding.
     """
 
-    def __init__(self, d_model, dropout_rate, max_len=5000):
-        """Construct an PositionalEncoding object."""
+    def __init__(self, d_model, dropout_rate=0.0, max_len=5000):
+        """Construct an Learned PositionalEncoding object."""
         super(LearnedPositionalEncoding, self).__init__(max_len,d_model)
         self.d_model = d_model
         self.dropout = torch.nn.Dropout(p=dropout_rate)

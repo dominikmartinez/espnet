@@ -6,12 +6,13 @@
 from typing import List
 from typing import Optional
 from typing import Tuple
-
+import logging
 import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.embedding import LearnedPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import RelPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
@@ -22,6 +23,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.subsampling import check_short_utt
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling2
@@ -66,6 +68,7 @@ class LegoNNEncoder(AbsEncoder):
         attention_heads: int = 4,
         linear_units: int = 2048,
         num_blocks: int = 6,
+        num_target_blocks: int = 6,
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
@@ -81,7 +84,6 @@ class LegoNNEncoder(AbsEncoder):
         upsampling_rate: float = 2,
         learned_positions: bool = True,
         fixed_positions: str = "sinusoidal",
-        positional_dropout_rate: float = 0.1,
     ):
         assert check_argument_types()
         super().__init__()
@@ -110,15 +112,15 @@ class LegoNNEncoder(AbsEncoder):
         )
 
         self.upsampling_rate = upsampling_rate
+        logging.info("Upsampling factor is set to {}".format(self.upsampling_rate))
+        self.upsample = torch.nn.Upsample(scale_factor=self.upsampling_rate, mode='nearest')
+
+        embedding_dim = output_size
 
         self.learned_positions = learned_positions
         if self.learned_positions:
-            self.learned_positions = LearnedPositionalEncoding(
-                embedding_dim,
-                dropout_rate,
-                max_len,
-            )
-            nn.init.normal_(self.learned_positions.weight, mean=0, std=embedding_dim ** -0.5)
+            self.learned_positions = LearnedPositionalEncoding(embedding_dim)
+            torch.nn.init.normal_(self.learned_positions.weight, mean=0, std=embedding_dim ** -0.5)
 
         if fixed_positions == "sinusoidal":
             self.decoder_positions = PositionalEncoding(embedding_dim, dropout_rate)
@@ -127,7 +129,7 @@ class LegoNNEncoder(AbsEncoder):
 
         attention_dim = output_size
         self.target_encoder = repeat(
-            num_blocks,
+            num_target_blocks,
             lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
@@ -143,7 +145,9 @@ class LegoNNEncoder(AbsEncoder):
             ),
         )
 
-        if self.normalize_before:
+        self.normalize_before = False
+        if normalize_before:
+            self.normalize_before = True
             self.after_norm = LayerNorm(output_size)
 
     def output_size(self) -> int:
@@ -172,52 +176,23 @@ class LegoNNEncoder(AbsEncoder):
             ctc
         )
 
+
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
-        if self.embed is None:
-            xs_pad = xs_pad
-        elif (
-            isinstance(self.embed, Conv2dSubsampling)
-            or isinstance(self.embed, Conv2dSubsampling2)
-            or isinstance(self.embed, Conv2dSubsampling6)
-            or isinstance(self.embed, Conv2dSubsampling8)
-        ):
-            short_status, limit_size = check_short_utt(self.embed, xs_pad.size(1))
-            if short_status:
-                raise TooShortUttError(
-                    f"has {xs_pad.size(1)} frames and is too short for subsampling "
-                    + f"(it needs more than {limit_size} frames), return empty results",
-                    xs_pad.size(1),
-                    limit_size,
-                )
-            xs_pad, masks = self.embed(xs_pad, masks)
-        else:
-            xs_pad = self.embed(xs_pad)
+        # upsample masks - B x 1 x L'
+        upsample_masks = self.upsample(masks.float()).bool()
+        upsample_pos = (torch.cumsum(upsample_masks, dim=2) * upsample_masks).squeeze(1).long()
 
-        intermediate_outs = []
-        if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
-        else:
-            for layer_idx, encoder_layer in enumerate(self.encoders):
-                xs_pad, masks = encoder_layer(xs_pad, masks)
+        if self.learned_positions:
+            target_x = self.learned_positions(upsample_pos)
+        target_x = self.decoder_positions(target_x)
 
-                if layer_idx + 1 in self.interctc_layer_idx:
-                    encoder_out = xs_pad
-
-                    # intermediate outputs are also normalized
-                    if self.normalize_before:
-                        encoder_out = self.after_norm(encoder_out)
-
-                    intermediate_outs.append((layer_idx + 1, encoder_out))
-
-                    if self.interctc_use_conditioning:
-                        ctc_out = ctc.softmax(encoder_out)
-                        xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+        target_x, upsample_masks, encoder_out, masks = self.target_encoder(
+            target_x, upsample_masks, encoder_out, masks
+        )
 
         if self.normalize_before:
-            xs_pad = self.after_norm(xs_pad)
+            target_x = self.after_norm(target_x)
 
-        olens = masks.squeeze(1).sum(1)
-        if len(intermediate_outs) > 0:
-            return (xs_pad, intermediate_outs), olens, None
-        return xs_pad, olens, None
+        olens = upsample_masks.squeeze(1).sum(1)
+        return target_x, olens, None

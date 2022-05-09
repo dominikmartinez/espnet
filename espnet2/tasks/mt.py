@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import (
@@ -29,6 +30,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.encoder.legonn_encoder import LegoNNEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,  # noqa: H301
 )
@@ -79,6 +81,7 @@ encoder_choices = ClassChoices(
     classes=dict(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
+        legonnencoder=LegoNNEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
@@ -187,6 +190,12 @@ class MTTask(AbsTask):
             type=str2bool,
             default=True,
             help="Apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--ctc_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(CTC),
+            help="The keyword arguments for CTC class.",
         )
         group.add_argument(
             "--token_type",
@@ -372,6 +381,16 @@ class MTTask(AbsTask):
             **args.decoder_conf,
         )
 
+        # 6. CTC
+        if args.model_conf["mt_ctc_weight"] > 0:
+            ctc = CTC(
+                odim=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.ctc_conf,
+            )
+        else:
+            ctc = None
+
         # 8. Build model
         model = ESPnetMTModel(
             vocab_size=vocab_size,
@@ -383,6 +402,7 @@ class MTTask(AbsTask):
             decoder=decoder,
             token_list=token_list,
             src_token_list=src_token_list,
+            ctc=ctc,
             **args.model_conf,
         )
 

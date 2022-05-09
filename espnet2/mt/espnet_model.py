@@ -16,6 +16,7 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
+from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -45,6 +46,8 @@ class ESPnetMTModel(AbsESPnetModel):
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
+        ctc: Optional[CTC],
+        mt_ctc_weight: float = 0.0,
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         ignore_id: int = -1,
@@ -104,6 +107,10 @@ class ESPnetMTModel(AbsESPnetModel):
             normalize_length=length_normalized_loss,
         )
 
+        self.mt_ctc_weight = mt_ctc_weight
+        if mt_ctc_weight > 0:
+            self.mt_ctc = ctc
+
         # MT error calculator
         if report_bleu:
             self.mt_error_calculator = MTErrorCalculator(
@@ -154,15 +161,24 @@ class ESPnetMTModel(AbsESPnetModel):
             encoder_out, encoder_out_lens, text, text_lengths
         )
 
-        # 3. Loss computation
-        loss = loss_mt_att
-
         stats = dict(
-            loss=loss.detach(),
+            loss_mt_att=loss_mt_att.detach(),
             acc=acc_mt_att,
             bleu=bleu_mt_att,
         )
 
+        # 2b. CTC Branch
+        if self.mt_ctc_weight > 0:
+            loss_mt_ctc = self.mt_ctc(encoder_out, encoder_out_lens, text, text_lengths)
+            # 3. Loss computation
+            loss = (1-self.mt_ctc_weight) * loss_mt_att + self.mt_ctc_weight * loss_mt_ctc
+            stats["loss_mt_ctc"] = loss_mt_ctc.detach()
+        else:
+            # 3. Loss computation
+            loss = loss_mt_att
+
+
+        stats["loss"] = loss.detach()
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
