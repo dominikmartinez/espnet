@@ -84,6 +84,7 @@ class LegoNNEncoder(AbsEncoder):
         upsampling_rate: float = 2,
         learned_positions: bool = True,
         fixed_positions: str = "sinusoidal",
+        final_layernorm: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -108,7 +109,7 @@ class LegoNNEncoder(AbsEncoder):
             padding_idx,
             interctc_layer_idx,
             interctc_use_conditioning,
-            final_layernorm = False,
+            final_layernorm,
         )
 
         self.upsampling_rate = upsampling_rate
