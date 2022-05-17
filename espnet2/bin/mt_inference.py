@@ -20,6 +20,7 @@ from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -56,6 +57,7 @@ class Text2Text:
         token_type: str = None,
         bpemodel: str = None,
         device: str = "cpu",
+        mt_ctc_weight: float = 0.0,
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
         batch_size: int = 1,
@@ -76,9 +78,13 @@ class Text2Text:
         mt_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = mt_model.decoder
+
+        ctc = CTCPrefixScorer(ctc=mt_model.mt_ctc, eos=mt_model.eos)
+
         token_list = mt_model.token_list
         scorers.update(
             decoder=decoder,
+            ctc=ctc,
             length_bonus=LengthBonus(len(token_list)),
         )
 
@@ -105,7 +111,8 @@ class Text2Text:
 
         # 4. Build BeamSearch object
         weights = dict(
-            decoder=1.0,
+            decoder=1.0 - mt_ctc_weight,
+            ctc=mt_ctc_weight,
             lm=lm_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
@@ -118,7 +125,7 @@ class Text2Text:
             eos=mt_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
-            pre_beam_score_key="full",
+            pre_beam_score_key=None if mt_ctc_weight == 1.0 else "full",
         )
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
@@ -275,6 +282,7 @@ def inference(
     seed: int,
     lm_weight: float,
     ngram_weight: float,
+    mt_ctc_weight: float,
     penalty: float,
     nbest: int,
     num_workers: int,
@@ -332,6 +340,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        mt_ctc_weight=mt_ctc_weight,
     )
     text2text = Text2Text.from_pretrained(
         model_tag=model_tag,
@@ -481,6 +490,7 @@ def get_parser():
         default=1,
         help="The batch size for inference",
     )
+    group.add_argument("--mt_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")

@@ -305,6 +305,14 @@ def inference(
     model_tag: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
+    md_beam_size: Optional[int],
+    md_nbest: Optional[int],
+    md_penalty: Optional[float],
+    md_maxlenratio: Optional[float],
+    md_minlenratio: Optional[float],
+    md_ctc_weight: Optional[float],
+    md_lm_weight: Optional[float],
+    md_ngram_weight: Optional[float],
     allow_variable_data_keys: bool,
     enh_s2t_task: bool,
 ):
@@ -519,6 +527,37 @@ def get_parser():
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
+
+    group = parser.add_argument_group("MD Intermediate-search related")
+    group.add_argument(
+        "--md_batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
+    )
+    group.add_argument("--md_nbest", type=int, default=1, help="Output N-best hypotheses")
+    group.add_argument("--md_beam_size", type=int, default=20, help="Beam size")
+    group.add_argument("--md_penalty", type=float, default=0.0, help="Insertion penalty")
+    group.add_argument(
+        "--md_maxlenratio",
+        type=float,
+        default=0.0,
+        help="Input length ratio to obtain max output length. "
+        "If maxlenratio=0.0 (default), it uses a end-detect "
+        "function "
+        "to automatically find maximum hypothesis lengths."
+        "If maxlenratio<0.0, its absolute value is interpreted"
+        "as a constant max output length",
+    )
+    group.add_argument(
+        "--md_minlenratio",
+        type=float,
+        default=0.0,
+        help="Input length ratio to obtain min output length",
+    )
+    group.add_argument("--md_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
+    group.add_argument("--md_lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--md_ngram_weight", type=float, default=0.9, help="ngram weight")
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(
