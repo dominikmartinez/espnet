@@ -56,7 +56,7 @@ optim_conf:
     - 0.9
     - 0.98
     eps: 0.000000001
-    weight_decay: 0.01
+    weight_decay: 0.1
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 10000
