@@ -6,7 +6,7 @@ from typing import Any
 from typing import List
 from typing import Sequence
 from typing import Tuple
-
+import math
 import torch
 from typeguard import check_argument_types
 
@@ -128,6 +128,14 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         memory_mask = (~make_pad_mask(hlens, maxlen=memory.size(1)))[:, None, :].to(
             memory.device
         )
+        ######
+        #m = torch.zeros(tgt_mask.size(-1), memory_mask.size(-1), device=memory_mask.device, dtype=torch.bool)
+        #slope = math.ceil( (memory_mask.size(-1) + 1) / tgt_mask.size(-1) )
+        #indexes = [i * memory_mask.size(-1) + j for i in range(tgt_mask.size(-1)) for j in range( slope * i + 1 ) if i * memory_mask.size(-1) + j < tgt_mask.size(-1) * memory_mask.size(-1)]
+        #m.flatten()[indexes] = True
+        #m = m.unsqueeze(0)
+        #memory_mask = memory_mask & m
+        ######
         # Padding for Longformer
         if memory_mask.shape[-1] != memory.shape[1]:
             padlen = memory.shape[1] - memory_mask.shape[-1]
@@ -171,6 +179,21 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         if cache is None:
             cache = [None] * len(self.decoders)
         new_cache = []
+
+        #####
+        #memory_mask = torch.ones(1,1, memory.size(1), device=memory.device, dtype=torch.bool)
+        #m = torch.zeros(tgt_mask.size(-1), memory_mask.size(-1), device=memory_mask.device, dtype=torch.bool)
+        #slope = math.ceil( (memory_mask.size(-1) + 1) / tgt_mask.size(-1) )
+        #indexes = [i * memory_mask.size(-1) + j for i in range(tgt_mask.size(-1)) for j in range( slope * i + 1 ) if i * memory_mask.size(-1) + j < tgt_mask.size(-1) * memory_mask.size(-1)]
+        #m.flatten()[indexes] = True
+        #memory_mask = memory_mask & m
+        #for c, decoder in zip(cache, self.decoders):
+        #    x, tgt_mask, memory, memory_mask = decoder(
+        #        x, tgt_mask, memory, memory_mask, cache=None
+        #    )
+        #    new_cache.append(x)
+        ######
+
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(
                 x, tgt_mask, memory, None, cache=c

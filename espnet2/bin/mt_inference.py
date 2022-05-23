@@ -79,14 +79,15 @@ class Text2Text:
 
         decoder = mt_model.decoder
 
-        ctc = CTCPrefixScorer(ctc=mt_model.mt_ctc, eos=mt_model.eos)
-
         token_list = mt_model.token_list
         scorers.update(
             decoder=decoder,
-            ctc=ctc,
             length_bonus=LengthBonus(len(token_list)),
         )
+
+        if mt_ctc_weight != 0.0:
+            ctc = CTCPrefixScorer(ctc=mt_model.mt_ctc, eos=mt_model.eos)
+            scorers["ctc"] = ctc
 
         # 2. Build Language model
         if lm_train_config is not None:
@@ -490,7 +491,7 @@ def get_parser():
         default=1,
         help="The batch size for inference",
     )
-    group.add_argument("--mt_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
+    group.add_argument("--mt_ctc_weight", type=float, default=0.0, help="CTC weight in joint decoding")
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
