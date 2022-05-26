@@ -382,7 +382,7 @@ class MTTask(AbsTask):
         )
 
         # 6. CTC
-        if args.model_conf["mt_ctc_weight"] > 0:
+        if "mt_ctc_weight" in args.model_conf and args.model_conf["mt_ctc_weight"] > 0:
             ctc = CTC(
                 odim=vocab_size,
                 encoder_output_size=encoder_output_size,
