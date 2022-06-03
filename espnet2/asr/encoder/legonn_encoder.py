@@ -114,7 +114,7 @@ class LegoNNEncoder(AbsEncoder):
 
         self.upsampling_rate = upsampling_rate
         logging.info("Upsampling factor is set to {}".format(self.upsampling_rate))
-        self.upsample = torch.nn.Upsample(scale_factor=self.upsampling_rate, mode='nearest')
+        #self.upsample = torch.nn.Upsample(scale_factor=self.upsampling_rate, mode='nearest')
 
         embedding_dim = output_size
 
@@ -181,7 +181,8 @@ class LegoNNEncoder(AbsEncoder):
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
         # upsample masks - B x 1 x L'
-        upsample_masks = self.upsample(masks.float()).bool()
+        # upsample_masks = self.upsample(masks.float()).bool()
+        upsample_masks = torch.nn.functional.interpolate(masks.float(), scale_factor=self.upsampling_rate, mode='nearest').bool()
         upsample_pos = (torch.cumsum(upsample_masks, dim=2) * upsample_masks).squeeze(1).long()
 
         if self.learned_positions:
