@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import torch
@@ -44,6 +45,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.mt.espnet_model import ESPnetMTModel
+from espnet2.mt.espnet_model_doublectc import ESPnetMTModelDCTC
 from espnet2.mt.frontend.embedding import Embedding
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -75,6 +77,19 @@ preencoder_choices = ClassChoices(
     type_check=AbsPreEncoder,
     default=None,
     optional=True,
+)
+mt_lego_encoder_choices = ClassChoices(
+    "mt_lego_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        legonnencoder=LegoNNEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default="rnn",
 )
 encoder_choices = ClassChoices(
     "encoder",
@@ -125,6 +140,8 @@ class MTTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --mt_lego_encoder and --mt_lego_encoder_conf
+        mt_lego_encoder_choices,
         # --postencoder and --postencoder_conf
         postencoder_choices,
         # --decoder and --decoder_conf
@@ -190,6 +207,12 @@ class MTTask(AbsTask):
             type=str2bool,
             default=True,
             help="Apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--src_ctc_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(CTC),
+            help="The keyword arguments for CTC class.",
         )
         group.add_argument(
             "--ctc_conf",
@@ -303,7 +326,7 @@ class MTTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetMTModel:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetMTModel,ESPnetMTModelDCTC]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -360,6 +383,12 @@ class MTTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
+        if getattr(args, "mt_lego_encoder", None) is not None:
+            mt_lego_encoder_class = encoder_choices.get_class(args.mt_lego_encoder)
+            mt_lego_encoder = encoder_class(input_size=input_size, **args.mt_lego_encoder_conf)
+        else:
+            mt_lego_encoder = None
+
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         encoder_output_size = encoder.output_size()
@@ -381,6 +410,14 @@ class MTTask(AbsTask):
             **args.decoder_conf,
         )
 
+        if "src_ctc_weight" in args.model_conf and args.model_conf["src_ctc_weight"] > 0:
+            src_ctc = CTC(
+                odim=src_vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.src_ctc_conf,
+            )
+        else:
+           src_ctc = None
         # 6. CTC
         if "mt_ctc_weight" in args.model_conf and args.model_conf["mt_ctc_weight"] > 0:
             ctc = CTC(
@@ -391,20 +428,38 @@ class MTTask(AbsTask):
         else:
             ctc = None
 
-        # 8. Build model
-        model = ESPnetMTModel(
-            vocab_size=vocab_size,
-            src_vocab_size=src_vocab_size,
-            frontend=frontend,
-            preencoder=preencoder,
-            encoder=encoder,
-            postencoder=postencoder,
-            decoder=decoder,
-            token_list=token_list,
-            src_token_list=src_token_list,
-            ctc=ctc,
-            **args.model_conf,
-        )
+        if "src_ctc_weight" in args.model_conf and args.model_conf["src_ctc_weight"] > 0:
+            # 8. Build model
+            model = ESPnetMTModelDCTC(
+                vocab_size=vocab_size,
+                src_vocab_size=src_vocab_size,
+                frontend=frontend,
+                preencoder=preencoder,
+                encoder=encoder,
+                mt_lego_encoder=mt_lego_encoder,
+                postencoder=postencoder,
+                decoder=decoder,
+                token_list=token_list,
+                src_token_list=src_token_list,
+                ctc=ctc,
+                src_ctc=src_ctc,
+                **args.model_conf,
+            )
+        else:
+            # 8. Build model
+            model = ESPnetMTModel(
+                vocab_size=vocab_size,
+                src_vocab_size=src_vocab_size,
+                frontend=frontend,
+                preencoder=preencoder,
+                encoder=encoder,
+                postencoder=postencoder,
+                decoder=decoder,
+                token_list=token_list,
+                src_token_list=src_token_list,
+                ctc=ctc,
+                **args.model_conf,
+            )
 
         # FIXME(kamo): Should be done in model?
         # 9. Initialize

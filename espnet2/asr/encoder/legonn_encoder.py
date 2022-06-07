@@ -90,27 +90,28 @@ class LegoNNEncoder(AbsEncoder):
         super().__init__()
         self._output_size = output_size
 
-
-        self.encoder = TransformerEncoder(
-            input_size,
-            output_size,
-            attention_heads,
-            linear_units,
-            num_blocks,
-            dropout_rate,
-            positional_dropout_rate,
-            attention_dropout_rate,
-            input_layer,
-            pos_enc_class,
-            normalize_before,
-            concat_after,
-            positionwise_layer_type,
-            positionwise_conv_kernel_size,
-            padding_idx,
-            interctc_layer_idx,
-            interctc_use_conditioning,
-            final_layernorm,
-        )
+        self.num_blocks = num_blocks
+        if num_blocks > 0:
+            self.encoder = TransformerEncoder(
+                input_size,
+                output_size,
+                attention_heads,
+                linear_units,
+                num_blocks,
+                dropout_rate,
+                positional_dropout_rate,
+                attention_dropout_rate,
+                input_layer,
+                pos_enc_class,
+                normalize_before,
+                concat_after,
+                positionwise_layer_type,
+                positionwise_conv_kernel_size,
+                padding_idx,
+                interctc_layer_idx,
+                interctc_use_conditioning,
+                final_layernorm,
+            )
 
         self.upsampling_rate = upsampling_rate
         logging.info("Upsampling factor is set to {}".format(self.upsampling_rate))
@@ -170,12 +171,15 @@ class LegoNNEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        encoder_out, encoder_out_lens, _ = self.encoder(
-            xs_pad,
-            ilens,
-            prev_states,
-            ctc
-        )
+        if self.num_blocks > 0:
+            encoder_out, encoder_out_lens, _ = self.encoder(
+                xs_pad,
+                ilens,
+                prev_states,
+                ctc
+            )
+        else:
+            encoder_out, encoder_out_lens = xs_pad, ilens
 
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

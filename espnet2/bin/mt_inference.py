@@ -35,6 +35,7 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet.nets.pytorch_backend.beam_search_ctc import BeamSearchCTC
+from espnet2.mt.espnet_model_doublectc import ESPnetMTModelDCTC
 
 
 class Text2Text:
@@ -227,7 +228,9 @@ class Text2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.mt_model.encode(**batch)
+        enc, enc_lens = self.mt_model.encode(**batch)
+        if isinstance(self.mt_model, ESPnetMTModelDCTC):
+            enc, _, _ = self.mt_model.mt_lego_encoder(enc, enc_lens)
         assert len(enc) == 1, len(enc)
 
         if self.ctc_greedy:
