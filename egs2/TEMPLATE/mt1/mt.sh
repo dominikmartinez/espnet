@@ -1214,7 +1214,7 @@ if ! "${skip_eval}"; then
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
-            if [ ${tgt_case} = "tc" ]; then
+            if [[ ${tgt_case} =~ "tc" ]]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
@@ -1264,7 +1264,7 @@ if ! "${skip_eval}"; then
                 if [ ${tgt_case} = "tc" ]; then
                     echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
                     sacrebleu ${case_sensitive_refs} \
-                        -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                        -i ${_scoredir}/hyp.trn.detok -m bleu chrf ter \
                         >> ${_scoredir}/result.tc.txt
                     log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
                 fi

@@ -384,8 +384,8 @@ class MTTask(AbsTask):
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
         if getattr(args, "mt_lego_encoder", None) is not None:
-            mt_lego_encoder_class = encoder_choices.get_class(args.mt_lego_encoder)
-            mt_lego_encoder = encoder_class(input_size=input_size, **args.mt_lego_encoder_conf)
+            mt_lego_encoder_class = mt_lego_encoder_choices.get_class(args.mt_lego_encoder)
+            mt_lego_encoder = mt_lego_encoder_class(input_size=input_size, **args.mt_lego_encoder_conf)
         else:
             mt_lego_encoder = None
 
