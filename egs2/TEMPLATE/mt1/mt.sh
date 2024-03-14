@@ -1279,7 +1279,7 @@ if ! "${skip_eval}"; then
 
         # Show results in Markdown syntax
         scripts/utils/show_translation_result.sh --case $tgt_case "${mt_exp}" > "${mt_exp}"/RESULTS.md
-        cat "${cat_exp}"/RESULTS.md
+        cat "${mt_exp}"/RESULTS.md
     fi
 else
     log "Skip the evaluation stages"
