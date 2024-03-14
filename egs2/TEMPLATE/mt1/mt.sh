@@ -592,7 +592,7 @@ if ! "${skip_data_prep}"; then
 
         # Then generate src lang
         if "${token_joint}"; then
-            log "Stage 4b: Skip separate token construction for src_lang when setting ${token_joint} as true"
+            log "Stage 4b: Skip separate token construction for src_lang when setting --token_joint as true"
         else
             if [ "${src_token_type}" = bpe ]; then
                 log "Stage 4b: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
