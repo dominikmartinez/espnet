@@ -17,36 +17,43 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-src=es
+#src=de
 
 log "$0 $*"
 . utils/parse_options.sh
 
-if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
+#if [ $# -ne 0 ]; then
+#    log "Error: No positional arguments are required."
+#    exit 2
+#fi
+if [ $# -ne 2 ]; then
+    log "Error: src and tgt lang are required as two positional arguments."
     exit 2
 fi
 
-echo "data.sh $src"
+src=$1
+tgt=$2
 
-tgt=en
+#echo "data.sh $src"
+log "data.sh: src set to '$src' and tgt set to '$tgt'"
+
+#tgt=en
 lang=${src}-${tgt}
 GZ=${src}-${tgt}.tgz
 prep=iwslt14.tokenized.${lang}
 tmp=data/$prep/tmp
 
+
 if [ -z "${IWSLT14}" ]; then
     log "Fill the value of 'IWSLT14' of db.sh"
     exit 1
 fi
-
-
 if [ -f "${IWSLT14}/${GZ}" ]; then
     log "Data already downloaded"
 else
     if [ $src == "es" ]; then
         URL="https://www.dropbox.com/s/azc2ieix33dmyj4/es-en.tgz"
-    elif [ $src == "de"]; then
+    elif [ $src == "de" ]; then
         URL="http://dl.fbaipublicfiles.com/fairseq/data/iwslt14/de-en.tgz"
     fi
     (
@@ -66,6 +73,7 @@ if [ ! -d "${IWSLT14}/${lang}" ]; then
     log "Data extracted"
 fi
 
+
 # check extra module installation
 if ! command -v tokenizer.perl > /dev/null; then
     echo "Error: it seems that moses is not installed." >&2
@@ -80,6 +88,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
 
     log "preparing test and valid data"
+
+
 
     for l in $src $tgt; do
         for o in "${IWSLT14}/${lang}"/IWSLT14.TED*."${l}".xml; do
