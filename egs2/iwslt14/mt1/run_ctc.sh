@@ -5,6 +5,8 @@ set -e
 set -u
 set -o pipefail
 
+mt_tag="011_ctc_dryrun"
+
 src_lang=de
 tgt_lang=en
 
@@ -52,4 +54,5 @@ data=dump/raw
     --tgt_bpe_train_text "$data/${train_set}/text.de_en.${tgt_case}.${tgt_lang}" \
     --lm_train_text "$data/${train_set}/text.de_en.${tgt_case}.${tgt_lang}" "$@" \
     --gpu_inference true \
-    --local_data_opts "$src_lang $tgt_lang"
+    --local_data_opts "$src_lang $tgt_lang" \
+    --mt_tag ${mt_tag}

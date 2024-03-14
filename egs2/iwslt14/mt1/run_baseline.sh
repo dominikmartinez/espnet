@@ -8,6 +8,8 @@ set -o pipefail
 src_lang=de
 tgt_lang=en
 
+mt_tag=013_baseline_dryrun_accumgrad_16
+
 train_set=train
 train_dev=valid
 test_set="test valid"
@@ -52,4 +54,5 @@ data=dump/raw
     --tgt_bpe_train_text "$data/${train_set}/text.de_en.${tgt_case}.${tgt_lang}" \
     --lm_train_text "$data/${train_set}/text.de_en.${tgt_case}.${tgt_lang}" "$@" \
     --gpu_inference true \
-    --local_data_opts "$src_lang $tgt_lang"
+    --local_data_opts "$src_lang $tgt_lang" \
+    --mt_tag ${mt_tag}
