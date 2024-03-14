@@ -1236,45 +1236,45 @@ if ! "${skip_eval}"; then
 
             # process multi-references cases
             multi_references=$(ls "${_data}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}".* || echo "")
-            if [ "${multi_references}" != "" ]; then
-                case_sensitive_refs=""
-                case_insensitive_refs=""
-                for multi_reference in ${multi_references}; do
-                    ref_idx="${multi_reference##*.}"
-                    paste \
-                        <(<${multi_reference} \
-                            ${python} -m espnet2.bin.tokenize_text  \
-                                -f 2- --input - --output - \
-                                --token_type word \
-                                --non_linguistic_symbols "${nlsyms_txt}" \
-                                --remove_non_linguistic_symbols true \
-                                --cleaner "${cleaner}" \
-                                ) \
-                        <(<"${_data}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn.org.${ref_idx}"
-                    
-                    # 
-                    perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
-                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
-                    case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
-                    case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
-                done
-
-                if [ ${tgt_case} = "tc" ]; then
-                    echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
-                    sacrebleu ${case_sensitive_refs} \
-                        -i ${_scoredir}/hyp.trn.detok -m bleu chrf ter \
-                        >> ${_scoredir}/result.tc.txt
-                    log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
-                fi
-
-                echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
-                sacrebleu -lc ${case_insensitive_refs} \
-                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
-                    >> ${_scoredir}/result.lc.txt
-                log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
-            fi
+#            if [ "${multi_references}" != "" ]; then
+#                case_sensitive_refs=""
+#                case_insensitive_refs=""
+#                for multi_reference in ${multi_references}; do
+#                    ref_idx="${multi_reference##*.}"
+#                    paste \
+#                        <(<${multi_reference} \
+#                            ${python} -m espnet2.bin.tokenize_text  \
+#                                -f 2- --input - --output - \
+#                                --token_type word \
+#                                --non_linguistic_symbols "${nlsyms_txt}" \
+#                                --remove_non_linguistic_symbols true \
+#                                --cleaner "${cleaner}" \
+#                                ) \
+#                        <(<"${_data}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
+#                            >"${_scoredir}/ref.trn.org.${ref_idx}"
+#                    
+#                    # 
+#                    perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
+#                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+#                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+#                    case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
+#                    case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+#                done
+#
+#                if [ ${tgt_case} = "tc" ]; then
+#                    echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
+#                    sacrebleu ${case_sensitive_refs} \
+#                        -i ${_scoredir}/hyp.trn.detok -m bleu chrf ter \
+#                        >> ${_scoredir}/result.tc.txt
+#                    log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
+#                fi
+#
+#                echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
+#                sacrebleu -lc ${case_insensitive_refs} \
+#                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+#                    >> ${_scoredir}/result.lc.txt
+#                log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
+#            fi
         done
 
         # Show results in Markdown syntax
