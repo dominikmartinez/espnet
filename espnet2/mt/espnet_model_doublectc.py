@@ -67,8 +67,8 @@ class ESPnetMTModelDCTC(AbsESPnetModel):
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
-        self.sos = vocab_size - 1
-        self.eos = vocab_size - 1
+        self.sos = 2
+        self.eos = 2
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id

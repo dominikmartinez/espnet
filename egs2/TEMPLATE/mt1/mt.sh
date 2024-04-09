@@ -567,7 +567,7 @@ if ! "${skip_data_prep}"; then
                 --write_vocabulary true \
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
-                --add_symbol "${sos_eos}:-1"
+                --add_symbol "${sos_eos}:2"
 
         else
             log "Error: not supported --token_type '${tgt_token_type}'"
@@ -587,7 +587,7 @@ if ! "${skip_data_prep}"; then
                 --vocabulary_size "${word_vocab_size}" \
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
-                --add_symbol "${sos_eos}:-1"
+                --add_symbol "${sos_eos}:2"
         fi
 
         # Then generate src lang
@@ -643,7 +643,7 @@ if ! "${skip_data_prep}"; then
                     --write_vocabulary true \
                     --add_symbol "${blank}:0" \
                     --add_symbol "${oov}:1" \
-                    --add_symbol "${sos_eos}:-1"
+                    --add_symbol "${sos_eos}:2"
 
             else
                 log "Error: not supported --token_type '${src_token_type}'"
