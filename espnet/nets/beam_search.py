@@ -192,6 +192,7 @@ class BeamSearch(torch.nn.Module):
         """
         scores = dict()
         states = dict()
+        ids = int(ids % 100)
         for k, d in self.part_scorers.items():
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states

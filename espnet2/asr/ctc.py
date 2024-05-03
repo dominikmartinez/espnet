@@ -150,6 +150,10 @@ class CTC(torch.nn.Module):
             # (B, L) -> (BxL,)
             ys_true = torch.cat([ys_pad[i, :l] for i, l in enumerate(ys_lens)])
 
+#        logging.info(f"ys_true.shape: {ys_true.shape}")
+        ys_true = torch.remainder(ys_true, 100)
+#        logging.info(f"ys_true.shape: {ys_true.shape}")
+
         loss = self.loss_fn(ys_hat, ys_true, hlens, ys_lens).to(
             device=hs_pad.device, dtype=hs_pad.dtype
         )

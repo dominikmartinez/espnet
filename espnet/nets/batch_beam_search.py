@@ -237,6 +237,9 @@ class BatchBeamSearch(BeamSearch):
         # for others.
         part_scores, part_states = self.score_partial(running_hyps, part_ids, x)
         for k in self.part_scorers:
+#            self.weights_k_tmp = torch.tensor(self.weights[k], dtype=part_scores[k].dtype, device=part_scores[k].device)
+#            self.weights[k] = self.weights_k_tmp
+            part_scores[k] = part_scores[k].repeat(1, 100)
             weighted_scores += self.weights[k] * part_scores[k]
         # add previous hyp scores
         weighted_scores += running_hyps.score.to(

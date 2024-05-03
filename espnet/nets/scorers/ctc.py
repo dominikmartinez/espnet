@@ -56,6 +56,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
                 return sc[i], st[i]
             else:  # for CTCPrefixScoreTH (need new_id > 0)
                 r, log_psi, f_min, f_max, scoring_idmap = state
+                new_id = new_id % 100
                 s = log_psi[i, new_id].expand(log_psi.size(1))
                 if scoring_idmap is not None:
                     return r[:, :, i, scoring_idmap[i, new_id]], s, f_min, f_max
@@ -124,6 +125,8 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             if state[0] is not None
             else None
         )
+        y = y % 100
+        ids = ids % 100
         return self.impl(y, batch_state, ids)
 
     def extend_prob(self, x: torch.Tensor):
