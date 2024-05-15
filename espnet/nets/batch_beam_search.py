@@ -177,6 +177,8 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
+        if self.cola_value:
+            ids = ids % self.cola_value
         for k, d in self.part_scorers.items():
             scores[k], states[k] = d.batch_score_partial(
                 hyp.yseq, ids, hyp.states[k], x
@@ -237,9 +239,8 @@ class BatchBeamSearch(BeamSearch):
         # for others.
         part_scores, part_states = self.score_partial(running_hyps, part_ids, x)
         for k in self.part_scorers:
-#            self.weights_k_tmp = torch.tensor(self.weights[k], dtype=part_scores[k].dtype, device=part_scores[k].device)
-#            self.weights[k] = self.weights_k_tmp
-            part_scores[k] = part_scores[k].repeat(1, 100)
+            if self.cola_value:
+                part_scores[k] = part_scores[k].repeat(1, self.cola_value)
             weighted_scores += self.weights[k] * part_scores[k]
         # add previous hyp scores
         weighted_scores += running_hyps.score.to(

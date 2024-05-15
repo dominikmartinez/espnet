@@ -411,8 +411,13 @@ class MTTask(AbsTask):
         )
 
         if "src_ctc_weight" in args.model_conf and args.model_conf["src_ctc_weight"] > 0:
+            if "cola_value" in args.model_conf and args.model_conf["cola_value"]:
+                src_cola_value = args.model_conf["cola_value"]
+                ctc_src_vocab_size = int(src_vocab_size / src_cola_value)
+            else:
+                ctc_src_vocab_size = src_vocab_size
             src_ctc = CTC(
-                odim=int(src_vocab_size / 100),
+                odim=ctc_src_vocab_size,
                 encoder_output_size=encoder_output_size,
                 **args.src_ctc_conf,
             )
@@ -420,8 +425,13 @@ class MTTask(AbsTask):
            src_ctc = None
         # 6. CTC
         if "mt_ctc_weight" in args.model_conf and args.model_conf["mt_ctc_weight"] > 0:
+            if "cola_value" in args.model_conf and args.model_conf["cola_value"]:
+                cola_value = args.model_conf["cola_value"]
+                ctc_vocab_size = int(vocab_size / cola_value)
+            else:
+                ctc_vocab_size = vocab_size
             ctc = CTC(
-                odim=int(vocab_size / 100),
+                odim=ctc_vocab_size,
                 encoder_output_size=encoder_output_size,
                 **args.ctc_conf,
             )
@@ -429,6 +439,9 @@ class MTTask(AbsTask):
             ctc = None
 
         if "src_ctc_weight" in args.model_conf and args.model_conf["src_ctc_weight"] > 0:
+            if "cola_value" in args.model_conf and isinstance(args.model_conf["cola_value"], int):
+                cola_value = args.model_conf["cola_value"]
+
             # 8. Build model
             model = ESPnetMTModelDCTC(
                 vocab_size=vocab_size,
@@ -443,6 +456,7 @@ class MTTask(AbsTask):
                 src_token_list=src_token_list,
                 ctc=ctc,
                 src_ctc=src_ctc,
+#                cola_value=cola_value,
                 **args.model_conf,
             )
         else:

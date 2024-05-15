@@ -24,6 +24,7 @@ class CTC(torch.nn.Module):
         ctc_type: str = "builtin",
         reduce: bool = True,
         ignore_nan_grad: bool = True,
+        cola_value: int = None,
     ):
         assert check_argument_types()
         super().__init__()
@@ -32,6 +33,7 @@ class CTC(torch.nn.Module):
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.ctc_type = ctc_type
         self.ignore_nan_grad = ignore_nan_grad
+        self.cola_value = cola_value
 
         if self.ctc_type == "builtin":
             self.ctc_loss = torch.nn.CTCLoss(reduction="none")
@@ -150,9 +152,8 @@ class CTC(torch.nn.Module):
             # (B, L) -> (BxL,)
             ys_true = torch.cat([ys_pad[i, :l] for i, l in enumerate(ys_lens)])
 
-#        logging.info(f"ys_true.shape: {ys_true.shape}")
-        ys_true = torch.remainder(ys_true, 100)
-#        logging.info(f"ys_true.shape: {ys_true.shape}")
+        if self.cola_value:
+            ys_true = torch.remainder(ys_true, self.cola_value)
 
         loss = self.loss_fn(ys_hat, ys_true, hlens, ys_lens).to(
             device=hs_pad.device, dtype=hs_pad.dtype

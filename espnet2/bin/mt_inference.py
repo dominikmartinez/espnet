@@ -34,6 +34,7 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+from espnet2.utils.types import int_or_none
 from espnet.nets.pytorch_backend.beam_search_ctc import BeamSearchCTC
 from espnet2.mt.espnet_model_doublectc import ESPnetMTModelDCTC
 
@@ -73,6 +74,7 @@ class Text2Text:
         time_synchronous: bool = False,
         ctc_greedy: bool = False,
         pruning_width: float = 18.0,
+        cola_value: Optional[int] = None,
     ):
         assert check_argument_types()
 
@@ -90,9 +92,8 @@ class Text2Text:
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
         )
-
         if mt_ctc_weight != 0.0:
-            ctc = CTCPrefixScorer(ctc=mt_model.mt_ctc, eos=mt_model.eos)
+            ctc = CTCPrefixScorer(ctc=mt_model.mt_ctc, eos=mt_model.eos, cola_value=cola_value)
             scorers["ctc"] = ctc
 
         # 2. Build Language model
@@ -146,6 +147,7 @@ class Text2Text:
                 vocab_size=len(token_list),
                 token_list=token_list,
                 pre_beam_score_key=None if mt_ctc_weight == 1.0 else "full",
+                cola_value=cola_value,
             )
             # TODO(karita): make all scorers batchfied
             if batch_size == 1:
@@ -345,6 +347,7 @@ def inference(
     ctc_greedy: bool,
     pruning_width: float,
     blank_penalty: float,
+    cola_value: Optional[int] = None,
     **kwargs
 ):
     assert check_argument_types()
@@ -391,6 +394,7 @@ def inference(
         blank_penalty=blank_penalty,
         ctc_greedy=ctc_greedy,
         pruning_width=pruning_width,
+        cola_value=cola_value,
     )
     text2text = Text2Text.from_pretrained(
         model_tag=model_tag,
@@ -564,6 +568,7 @@ def get_parser():
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
+    group.add_argument("--cola_value", type=int_or_none, default=None, help="CoLa value")
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(

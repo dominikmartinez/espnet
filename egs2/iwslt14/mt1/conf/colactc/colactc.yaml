@@ -50,13 +50,13 @@ model_conf:
     length_normalized_loss: false
     share_decoder_input_output_embed: false
     share_encoder_decoder_input_embed: true
-    cola_value: null
+    cola_value: 100
 
 ctc_conf:
-    cola_value: null
+    cola_value: 100
 
 src_ctc_conf:
-    cola_value: null
+    cola_value: 100
 
 num_att_plot: 1
 log_interval: 100

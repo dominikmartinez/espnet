@@ -51,6 +51,7 @@ class ESPnetMTModelDCTC(AbsESPnetModel):
         mt_lego_encoder: Optional[AbsEncoder],
         mt_ctc_weight: float = 0.0,
         src_ctc_weight: float = 0.0,
+        cola_value: Optional[int] = None,
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         ignore_id: int = -1,

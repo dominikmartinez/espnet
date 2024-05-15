@@ -8,6 +8,7 @@ from typing import List
 from typing import NamedTuple
 from typing import Tuple
 from typing import Union
+from typing import Optional
 
 import torch
 
@@ -47,6 +48,7 @@ class BeamSearch(torch.nn.Module):
         token_list: List[str] = None,
         pre_beam_ratio: float = 1.5,
         pre_beam_score_key: str = None,
+        cola_value: Optional[int] = None,
     ):
         """Initialize beam search.
 
@@ -109,6 +111,7 @@ class BeamSearch(torch.nn.Module):
             and self.pre_beam_size < self.n_vocab
             and len(self.part_scorers) > 0
         )
+        self.cola_value = cola_value
 
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
@@ -192,7 +195,8 @@ class BeamSearch(torch.nn.Module):
         """
         scores = dict()
         states = dict()
-        ids = int(ids % 100)
+        if self.cola_value:
+            ids = ids % self.cola_value
         for k, d in self.part_scorers.items():
             scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
         return scores, states
@@ -310,6 +314,8 @@ class BeamSearch(torch.nn.Module):
                 part_ids = torch.topk(pre_beam_scores, self.pre_beam_size)[1]
             part_scores, part_states = self.score_partial(hyp, part_ids, x)
             for k in self.part_scorers:
+                if self.cola_value:
+                    part_scores[k] = part_scores[k].repeat(1, self.cola_value)
                 weighted_scores[part_ids] += self.weights[k] * part_scores[k]
             # add previous hyp score
             weighted_scores += hyp.score

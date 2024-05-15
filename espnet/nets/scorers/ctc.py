@@ -11,7 +11,7 @@ from espnet.nets.scorer_interface import BatchPartialScorerInterface
 class CTCPrefixScorer(BatchPartialScorerInterface):
     """Decoder interface wrapper for CTCPrefixScore."""
 
-    def __init__(self, ctc: torch.nn.Module, eos: int):
+    def __init__(self, ctc: torch.nn.Module, eos: int, cola_value):
         """Initialize class.
 
         Args:
@@ -23,6 +23,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         self.ctc = ctc
         self.eos = eos
         self.impl = None
+        self.cola_value = cola_value
 
     def init_state(self, x: torch.Tensor):
         """Get an initial state for decoding.
@@ -56,7 +57,8 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
                 return sc[i], st[i]
             else:  # for CTCPrefixScoreTH (need new_id > 0)
                 r, log_psi, f_min, f_max, scoring_idmap = state
-                new_id = new_id % 100
+                if self.cola_value:
+                    new_id = new_id % self.cola_value
                 s = log_psi[i, new_id].expand(log_psi.size(1))
                 if scoring_idmap is not None:
                     return r[:, :, i, scoring_idmap[i, new_id]], s, f_min, f_max
@@ -125,8 +127,9 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             if state[0] is not None
             else None
         )
-        y = y % 100
-        ids = ids % 100
+        if self.cola_value:
+            y = y % self.cola_value
+            ids = ids % self.cola_value
         return self.impl(y, batch_state, ids)
 
     def extend_prob(self, x: torch.Tensor):
