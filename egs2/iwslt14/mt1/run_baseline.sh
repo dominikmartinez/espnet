@@ -8,7 +8,7 @@ set -o pipefail
 src_lang=de
 tgt_lang=en
 
-mt_tag=013_baseline_dryrun_accumgrad_16
+mt_tag="{choose_experiment_name}"
 
 train_set=train
 train_dev=valid
@@ -34,8 +34,8 @@ data=dump/raw
     --use_lm false \
     --token_joint true \
     --ngpu 1 \
-    --nj 16 \
-    --inference_nj 32 \
+    --nj 1 \
+    --inference_nj 1 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \

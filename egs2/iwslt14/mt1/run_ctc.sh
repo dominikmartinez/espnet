@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-mt_tag="011_ctc_dryrun"
+mt_tag="{choose_experiment_name}"
 
 src_lang=de
 tgt_lang=en
@@ -34,8 +34,8 @@ data=dump/raw
     --use_lm false \
     --token_joint true \
     --ngpu 1 \
-    --nj 16 \
-    --inference_nj 32 \
+    --nj 1 \
+    --inference_nj 1 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
