@@ -113,6 +113,7 @@ class BeamSearch(torch.nn.Module):
         )
         self.cola_value = cola_value
 
+
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
 
@@ -255,6 +256,8 @@ class BeamSearch(torch.nn.Module):
                 Its values are scalar tensors by the scorers.
 
         """
+#        if self.cola_value:
+#            part_idx = part_idx % self.cola_value
         new_scores = dict()
         for k, v in next_full_scores.items():
             new_scores[k] = prev_scores[k] + v[full_idx]
@@ -315,7 +318,10 @@ class BeamSearch(torch.nn.Module):
             part_scores, part_states = self.score_partial(hyp, part_ids, x)
             for k in self.part_scorers:
                 if self.cola_value:
-                    part_scores[k] = part_scores[k].repeat(1, self.cola_value)
+#                    part_scores[k] = part_scores[k].repeat(1, self.cola_value)
+                    goal = weighted_scores.size()[1]
+                    repeats = (goal // part_scores[k].size()[1]) + 1
+                    part_scores[k] = part_scores[k].repeat(1, repeats)[:, :goal]
                 weighted_scores[part_ids] += self.weights[k] * part_scores[k]
             # add previous hyp score
             weighted_scores += hyp.score

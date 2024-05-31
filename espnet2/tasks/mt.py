@@ -413,7 +413,8 @@ class MTTask(AbsTask):
         if "src_ctc_weight" in args.model_conf and args.model_conf["src_ctc_weight"] > 0:
             if "cola_value" in args.model_conf and args.model_conf["cola_value"]:
                 src_cola_value = args.model_conf["cola_value"]
-                ctc_src_vocab_size = int(src_vocab_size / src_cola_value)
+#                ctc_src_vocab_size = int(src_vocab_size / src_cola_value)
+                ctc_src_vocab_size = src_cola_value
             else:
                 ctc_src_vocab_size = src_vocab_size
             src_ctc = CTC(
@@ -427,7 +428,8 @@ class MTTask(AbsTask):
         if "mt_ctc_weight" in args.model_conf and args.model_conf["mt_ctc_weight"] > 0:
             if "cola_value" in args.model_conf and args.model_conf["cola_value"]:
                 cola_value = args.model_conf["cola_value"]
-                ctc_vocab_size = int(vocab_size / cola_value)
+#                ctc_vocab_size = int(vocab_size / cola_value)
+                ctc_vocab_size = cola_value
             else:
                 ctc_vocab_size = vocab_size
             ctc = CTC(

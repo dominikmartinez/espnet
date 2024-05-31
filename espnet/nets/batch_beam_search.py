@@ -240,7 +240,22 @@ class BatchBeamSearch(BeamSearch):
         part_scores, part_states = self.score_partial(running_hyps, part_ids, x)
         for k in self.part_scorers:
             if self.cola_value:
-                part_scores[k] = part_scores[k].repeat(1, self.cola_value)
+                ## NOTE(dominikmartinez): implementation used for CoLaCTC100,
+                ## it only works when cola_value is the root of vocab_size
+                # part_scores[k] = part_scores[k].repeat(1, self.cola_value)
+
+                ## NOTE(dominikmartinez): implementation used to find lower bound
+                    part_scores[k] = torch.zeros(weighted_scores.shape).cuda()
+
+                ## NOTE(dominikmartinez): slightly faster implementation
+                ## where tensor shapes are calculated manually and hardcoded
+#                part_scores[k] = part_scores[k].repeat(1, 313)[:, :10000]
+
+                ## NOTE(dominikmartinez): general implementation of CoLaCTC
+                #goal = weighted_scores.size()[1]
+                #repeats = (goal // part_scores[k].size()[1]) + 1
+                #part_scores[k] = part_scores[k].repeat(1, repeats)[:, :goal]
+
             weighted_scores += self.weights[k] * part_scores[k]
         # add previous hyp scores
         weighted_scores += running_hyps.score.to(
