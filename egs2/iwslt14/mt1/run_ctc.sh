@@ -50,9 +50,9 @@ data=dump/raw
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
-    --src_bpe_train_text "$data/${train_set}/text.de_en.${src_case}.${src_lang}" \
-    --tgt_bpe_train_text "$data/${train_set}/text.de_en.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "$data/${train_set}/text.de_en.${tgt_case}.${tgt_lang}" "$@" \
+    --src_bpe_train_text "$data/${train_set}/text.${src_lang}_${tgt_lang}.${src_case}.${src_lang}" \
+    --tgt_bpe_train_text "$data/${train_set}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" \
+    --lm_train_text "$data/${train_set}/text.${src_lang}_${tgt_lang}.${tgt_case}.${tgt_lang}" "$@" \
     --gpu_inference true \
     --local_data_opts "$src_lang $tgt_lang" \
     --mt_tag ${mt_tag}
